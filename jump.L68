@@ -1,0 +1,55 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 01/02/2023 17:20:04
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      : Jump
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  
+00001000                             9  START:                  ; first instruction of program
+00001000                            10  
+00001000  =00000100                 11  PLAYER_YPOS EQU $100
+00001000  =00000026                 12  UP_ARROW EQU $26
+00001000                            13      ;MOVE.B #1,PLAYER_YPOS
+00001000                            14      ;MOVE.B #5, D0
+00001000                            15      ;TRAP #15
+00001000                            16  
+00001000                            17      ;IF.B D1 <EQ> #$20 THEN
+00001000                            18      ;    ADD.B   #1,PLAYER_YPOS
+00001000                            19      ;ENDI
+00001000                            20      
+00001000                            21      ;MOVE.B PLAYER_YPOS,D3
+00001000                            22      WHILE $100 <NE> #$10 DO
+0000100A  103C 0013                 23          MOVE.B  #19,D0
+0000100E  223C 26000000             24          MOVE.L  #$26000000,D1
+00001014  4E4F                      25          TRAP    #15
+00001016                            26      
+00001016  0801 0018                 27          BTST.L  #24,D1
+0000101A                            28          IF <EQ> THEN
+0000101E  5238 0100                 29              ADD.B   #1,PLAYER_YPOS
+00001022                            30          ENDI
+00001022                            31       ENDW
+00001024                            32  
+00001024  FFFF FFFF                 33      SIMHALT             ; halt simulator
+00001028                            34  
+00001028                            35  * Put variables and constants here
+00001028                            36  
+00001028                            37      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+PLAYER_YPOS         100
+START               1000
+UP_ARROW            26
+_00000000           1022
+_10000000           1000
+_10000001           1024

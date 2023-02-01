@@ -1,6 +1,6 @@
 00001000 Starting Address
 Assembler used: EASy68K Editor/Assembler v5.16.01
-Created On: 25/01/2023 22:25:14
+Created On: 01/02/2023 14:53:26
 
 00000000                             1  *-----------------------------------------------------------
 00000000                             2  * Title      :
@@ -11,117 +11,137 @@ Created On: 25/01/2023 22:25:14
 00001000                             7      ORG    $1000
 00001000                             8  START:                  ; first instruction of program
 00001000                             9  
-00001000                            10  ;Game boot dialogue start
-00001000  43F9 000011C1             11          LEA within_WAV, A1 *Load first line into A1
-00001006  123C 0000                 12          MOVE.B #0,D1
-0000100A  103C 0047                 13          MOVE.B #71, D0
-0000100E  4E4F                      14          TRAP #15
-00001010                            15          
-00001010  323C 0000                 16          MOVE    #0,D1 *Play line 1
-00001014  303C 0048                 17          MOVE    #72,D0
-00001018  4E4F                      18          TRAP    #15
-0000101A                            19          
-0000101A  223C 00FFFFFF             20          MOVE.L #$00FFFFFF, D1 *Set text colour
-00001020  243C 06090000             21          MOVE.L #$06090000,D2 *Set font, size, etc
-00001026  103C 0015                 22          MOVE.B #21, D0
-0000102A  4E4F                      23          TRAP #15
-0000102C                            24          
-0000102C  43F9 00001112             25          LEA fear,A1
-00001032  323C 003C                 26          MOVE.W #60, D1
-00001036  343C 0064                 27          MOVE.W #100, D2
-0000103A  103C 005F                 28          MOVE.B #95, D0
-0000103E  4E4F                      29          TRAP #15
-00001040                            30          
-00001040                            31          
-00001040  223C 000001C2             32          move.l   #450,D1     ; delay in 1/100th of seconds
-00001046  7017                      33          moveq    #23,D0
-00001048  4E4F                      34          trap     #15
-0000104A                            35          
-0000104A  43F9 000011CC             36          LEA eldritch_WAV, A1 *Load line 2 into A1
-00001050  123C 0001                 37          MOVE.B #1,D1
-00001054  103C 0047                 38          MOVE.B #71, D0
-00001058  4E4F                      39          TRAP #15
-0000105A                            40          
-0000105A  123C 0001                 41          MOVE.B    #1,D1 *Play line 2
-0000105E  103C 0048                 42          MOVE.B    #72,D0
-00001062  4E4F                      43          TRAP    #15
-00001064                            44  
-00001064  43F9 00001149             45          LEA eldritch,A1
-0000106A  323C 003C                 46          MOVE.W #60, D1
-0000106E  343C 0078                 47          MOVE.W #120, D2
-00001072  103C 005F                 48          MOVE.B #95, D0
-00001076  4E4F                      49          TRAP #15
-00001078                            50          
-00001078  223C 00000190             51          move.l   #400,D1
-0000107E  7017                      52          moveq    #23,D0
-00001080  4E4F                      53          trap     #15
-00001082                            54          
-00001082  43F9 000011D9             55          LEA reckon_WAV, A1 *Load line 3 into A1
-00001088  123C 0001                 56          MOVE.B #1,D1
-0000108C  103C 0047                 57          MOVE.B #71, D0
-00001090  4E4F                      58          TRAP #15
-00001092                            59          
-00001092  123C 0001                 60          MOVE.B    #1,D1 *Play line 3
-00001096  103C 0048                 61          MOVE.B    #72,D0
-0000109A  4E4F                      62          TRAP    #15
-0000109C                            63          
-0000109C  43F9 00001176             64          LEA how,A1
-000010A2  323C 003C                 65          MOVE.W #60, D1
-000010A6  343C 008C                 66          MOVE.W #140, D2
-000010AA  103C 005F                 67          MOVE.B #95, D0
-000010AE  4E4F                      68          TRAP #15
-000010B0                            69          
-000010B0  223C 00000190             70          move.l   #400,D1
-000010B6  7017                      71          moveq    #23,D0
-000010B8  4E4F                      72          trap     #15
-000010BA                            73          
-000010BA  43F9 000011E4             74          LEA find_WAV, A1 *Load line 4 into A1
-000010C0  123C 0002                 75          MOVE.B #2,D1
-000010C4  103C 0047                 76          MOVE.B #71, D0
-000010C8  4E4F                      77          TRAP #15
-000010CA                            78          
-000010CA  123C 0002                 79          MOVE.B    #2,D1 *Play line 4
-000010CE  103C 0048                 80          MOVE.B    #72,D0
-000010D2  4E4F                      81          TRAP    #15
-000010D4                            82          
-000010D4  223C 00080888             83          MOVE.L #$00080888, D1
-000010DA  243C 06090000             84          MOVE.L #$06090000,D2
-000010E0  103C 0015                 85          MOVE.B #21, D0
-000010E4  4E4F                      86          TRAP #15
-000010E6                            87          
-000010E6  43F9 000011A2             88          LEA let,A1
-000010EC  323C 003C                 89          MOVE.W #60, D1
-000010F0  343C 00FA                 90          MOVE.W #250, D2
-000010F4  103C 005F                 91          MOVE.B #95, D0
-000010F8  4E4F                      92          TRAP #15
-000010FA                            93          
-000010FA  223C 000000C8             94          move.l   #200,D1
-00001100  7017                      95          moveq    #23,D0
-00001102  4E4F                      96          trap     #15
-00001104                            97          
-00001104  323C FF00                 98          MOVE.W #$FF00, D1
-00001108  103C 000B                 99          MOVE.B #11, D0
-0000110C  4E4F                     100          TRAP #15
-0000110E                           101  ;end of game boot dialogue
-0000110E                           102          
-0000110E                           103          
-0000110E                           104  
-0000110E                           105      
-0000110E                           106  
-0000110E  FFFF FFFF                107      SIMHALT             ; halt simulator
-00001112                           108  
-00001112                           109  * Put variables and constants here
-00001112= 57 65 20 66 65 61 ...    110  fear dc.b 'We fear not the darkness itself, but what lies within.',0
-00001149= 45 6C 64 72 69 74 ...    111  eldritch dc.b 'Eldritch horrors beyond human comprehension.',0
-00001176= 48 6F 77 20 6C 6F ...    112  how dc.b 'How long do you reckon you can outrun them?',0
-000011A2= 4C 65 74 20 75 73 ...    113  let dc.b 'Let us find out......',0
-000011B8= 6D 65 6E 75 2E 77 ...    114  menu_WAV dc.b 'menu.wav', 0
-000011C1= 77 69 74 68 69 6E ...    115  within_WAV dc.b 'within.wav', 0
-000011CC= 65 6C 64 72 69 74 ...    116  eldritch_WAV dc.b 'eldritch.wav',0
-000011D9= 72 65 63 6B 6F 6E ...    117  reckon_WAV dc.b 'reckon.wav',0
-000011E4= 66 69 6E 64 2E 77 ...    118  find_WAV dc.b 'find.wav',0
-000011ED                           119  
-000011ED                           120      END    START        ; last line of source
+00001000  =00004000                 10  SANITY EQU $4000
+00001000  =00003000                 11  PLAYER_X EQU $3000
+00001000  =00003010                 12  PLAYER_Y EQU $3010
+00001000  =00003100                 13  ENEMY_X EQU $3100
+00001000  =00003110                 14  ENEMY_Y EQU $3110
+00001000                            15  
+00001000                            16  ;Game boot dialogue start
+00001000  43F9 000011EA             17          LEA within_WAV, A1 *Load first line into A1
+00001006  123C 0000                 18          MOVE.B #0,D1
+0000100A  103C 0047                 19          MOVE.B #71, D0
+0000100E  4E4F                      20          TRAP #15
+00001010                            21          
+00001010  323C 0000                 22          MOVE    #0,D1 *Play line 1
+00001014  303C 0048                 23          MOVE    #72,D0
+00001018  4E4F                      24          TRAP    #15
+0000101A                            25          
+0000101A  223C 00FFFFFF             26          MOVE.L #$00FFFFFF, D1 *Set text colour
+00001020  243C 06090000             27          MOVE.L #$06090000,D2 *Set font, size, etc
+00001026  103C 0015                 28          MOVE.B #21, D0
+0000102A  4E4F                      29          TRAP #15
+0000102C                            30          
+0000102C  43F9 00001134             31          LEA fear,A1
+00001032  323C 003C                 32          MOVE.W #60, D1
+00001036  343C 0064                 33          MOVE.W #100, D2
+0000103A  103C 005F                 34          MOVE.B #95, D0
+0000103E  4E4F                      35          TRAP #15
+00001040                            36          
+00001040                            37          
+00001040  223C 000001C2             38          move.l   #450,D1     ; delay in 1/100th of seconds
+00001046  7017                      39          moveq    #23,D0
+00001048  4E4F                      40          trap     #15
+0000104A                            41          
+0000104A  43F9 000011FC             42          LEA eldritch_WAV, A1 *Load line 2 into A1
+00001050  123C 0001                 43          MOVE.B #1,D1
+00001054  103C 0047                 44          MOVE.B #71, D0
+00001058  4E4F                      45          TRAP #15
+0000105A                            46          
+0000105A  123C 0001                 47          MOVE.B    #1,D1 *Play line 2
+0000105E  103C 0048                 48          MOVE.B    #72,D0
+00001062  4E4F                      49          TRAP    #15
+00001064                            50  
+00001064  43F9 0000116B             51          LEA eldritch,A1
+0000106A  323C 003C                 52          MOVE.W #60, D1
+0000106E  343C 0078                 53          MOVE.W #120, D2
+00001072  103C 005F                 54          MOVE.B #95, D0
+00001076  4E4F                      55          TRAP #15
+00001078                            56          
+00001078  223C 00000190             57          move.l   #400,D1
+0000107E  7017                      58          moveq    #23,D0
+00001080  4E4F                      59          trap     #15
+00001082                            60          
+00001082  43F9 00001210             61          LEA reckon_WAV, A1 *Load line 3 into A1
+00001088  123C 0001                 62          MOVE.B #1,D1
+0000108C  103C 0047                 63          MOVE.B #71, D0
+00001090  4E4F                      64          TRAP #15
+00001092                            65          
+00001092  123C 0001                 66          MOVE.B    #1,D1 *Play line 3
+00001096  103C 0048                 67          MOVE.B    #72,D0
+0000109A  4E4F                      68          TRAP    #15
+0000109C                            69          
+0000109C  43F9 00001198             70          LEA how,A1
+000010A2  323C 003C                 71          MOVE.W #60, D1
+000010A6  343C 008C                 72          MOVE.W #140, D2
+000010AA  103C 005F                 73          MOVE.B #95, D0
+000010AE  4E4F                      74          TRAP #15
+000010B0                            75          
+000010B0  223C 00000190             76          move.l   #400,D1
+000010B6  7017                      77          moveq    #23,D0
+000010B8  4E4F                      78          trap     #15
+000010BA                            79          
+000010BA  43F9 00001222             80          LEA find_WAV, A1 *Load line 4 into A1
+000010C0  123C 0002                 81          MOVE.B #2,D1
+000010C4  103C 0047                 82          MOVE.B #71, D0
+000010C8  4E4F                      83          TRAP #15
+000010CA                            84          
+000010CA  123C 0002                 85          MOVE.B    #2,D1 *Play line 4
+000010CE  103C 0048                 86          MOVE.B    #72,D0
+000010D2  4E4F                      87          TRAP    #15
+000010D4                            88          
+000010D4  223C 00080888             89          MOVE.L #$00080888, D1
+000010DA  243C 06090000             90          MOVE.L #$06090000,D2
+000010E0  103C 0015                 91          MOVE.B #21, D0
+000010E4  4E4F                      92          TRAP #15
+000010E6                            93          
+000010E6  43F9 000011C4             94          LEA let,A1
+000010EC  323C 003C                 95          MOVE.W #60, D1
+000010F0  343C 00FA                 96          MOVE.W #250, D2
+000010F4  103C 005F                 97          MOVE.B #95, D0
+000010F8  4E4F                      98          TRAP #15
+000010FA                            99          
+000010FA  223C 000000FA            100          move.l   #250,D1
+00001100  7017                     101          moveq    #23,D0
+00001102  4E4F                     102          trap     #15
+00001104                           103          
+00001104  323C FF00                104          MOVE.W #$FF00, D1
+00001108  103C 000B                105          MOVE.B #11, D0
+0000110C  4E4F                     106          TRAP #15
+0000110E                           107          
+0000110E                           108  render_square
+0000110E  223C 00FFFFFF            109          move.l #$00FFFFFF, D1
+00001114  103C 0051                110          move.b #81, D0
+00001118  4E4F                     111          trap #15
+0000111A  323C 0032                112          move.w #50, D1
+0000111E  343C 0032                113          move.w #50, D2
+00001122  363C 004B                114          move.w #75, D3
+00001126  383C 004B                115          move.w #75,D4
+0000112A  103C 0057                116          move.b #87, D0
+0000112E  4E4F                     117          trap #15
+00001130                           118  
+00001130                           119          
+00001130                           120          
+00001130                           121  ;end of game boot dialogue
+00001130                           122          
+00001130                           123          
+00001130                           124  
+00001130                           125      
+00001130                           126  
+00001130  FFFF FFFF                127      SIMHALT             ; halt simulator
+00001134                           128  
+00001134                           129  * Put variables and constants here
+00001134= 57 65 20 66 65 61 ...    130  fear dc.b 'We fear not the darkness itself, but what lies within.',0
+0000116B= 45 6C 64 72 69 74 ...    131  eldritch dc.b 'Eldritch horrors beyond human comprehension.',0
+00001198= 48 6F 77 20 6C 6F ...    132  how dc.b 'How long do you reckon you can outrun them?',0
+000011C4= 4C 65 74 20 75 73 ...    133  let dc.b 'Let us find out......',0
+000011DA= 73 6F 75 6E 64 73 ...    134  menu_WAV dc.b 'sounds/menu.wav', 0
+000011EA= 73 6F 75 6E 64 73 ...    135  within_WAV dc.b 'sounds/within.wav', 0
+000011FC= 73 6F 75 6E 64 73 ...    136  eldritch_WAV dc.b 'sounds/eldritch.wav',0
+00001210= 73 6F 75 6E 64 73 ...    137  reckon_WAV dc.b 'sounds/reckon.wav',0
+00001222= 73 6F 75 6E 64 73 ...    138  find_WAV dc.b 'sounds/find.wav',0
+00001232                           139  
+00001232                           140      END    START        ; last line of source
 
 No errors detected
 No warnings generated
@@ -130,13 +150,19 @@ No warnings generated
 SYMBOL TABLE INFORMATION
 Symbol-name         Value
 -------------------------
-ELDRITCH            1149
-ELDRITCH_WAV        11CC
-FEAR                1112
-FIND_WAV            11E4
-HOW                 1176
-LET                 11A2
-MENU_WAV            11B8
-RECKON_WAV          11D9
+ELDRITCH            116B
+ELDRITCH_WAV        11FC
+ENEMY_X             3100
+ENEMY_Y             3110
+FEAR                1134
+FIND_WAV            1222
+HOW                 1198
+LET                 11C4
+MENU_WAV            11DA
+PLAYER_X            3000
+PLAYER_Y            3010
+RECKON_WAV          1210
+RENDER_SQUARE       110E
+SANITY              4000
 START               1000
-WITHIN_WAV          11C1
+WITHIN_WAV          11EA
