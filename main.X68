@@ -6,7 +6,14 @@
 *-----------------------------------------------------------
     ORG    $1000
 START:                  ; first instruction of program
-
+* Trap CODES
+TC_SCREEN   EQU         33          ; Screen size information trap code
+TC_S_SIZE   EQU         00          ; Places 0 in D1.L to retrieve Screen width and height in D1.L
+                                    ; First 16 bit Word is screen Width and Second 16 bits is screen Height
+TC_KEYCODE  EQU         19          ; Check for pressed keys
+TC_DBL_BUF  EQU         92          ; Double Buffer Screen Trap Code
+TC_CURSR_P  EQU         11          ; Trap code cursor position
+TC_EXIT     EQU         09          ; Exit Trapcode
 
 * Player Health
 SANITY EQU $4000
@@ -16,119 +23,135 @@ LEFT_ARROW EQU $25
 UP_ARROW EQU $26
 RIGHT_ARROW EQU $27
 DOWN_ARROW EQU $28
+SPACEBAR    EQU         $20         ; Spacebar ASCII Keycode
+ESCAPE      EQU         $1B         ; Escape ASCII Keycode
 
 * Player Setup
+PLYR_W_INIT EQU         08          ; Players initial Width
+PLYR_H_INIT EQU         08          ; Players initial Height
+
 PLYR_DFLT_V EQU         00          ; Default Player Velocity
 PLYR_JUMP_V EQU        -20          ; Player Jump Velocity
 PLYR_DFLT_G EQU         01          ; Player Default Gravity
+
 GND_TRUE    EQU         01          ; Player on Ground True
 GND_FALSE   EQU         00          ; Player on Ground False
+
+RUN_INDEX   EQU         00          ; Player Run Sound Index  
+JMP_INDEX   EQU         01          ; Player Jump Sound Index  
+OPPS_INDEX  EQU         02          ; Player Opps Sound Index
 
 * Enemy Setup
 ENMY_W_INIT EQU         08          ; Enemy initial Width
 ENMY_H_INIT EQU         08          ; Enemy initial Height
 
+POINTS      EQU         01          ; Points added
+
 ;Game boot dialogue start
 
-* :GAME_BOOT
-*         LEA within_WAV, A1 *Load first line into A1
-*         MOVE.B #0,D1
-*         MOVE.B #71, D0
-*         TRAP #15
+* GAME_BOOT:
+*          LEA within_WAV, A1 *Load first line into A1
+*          MOVE #0,D1
+*          MOVE #71, D0
+*          TRAP #15
         
-*         MOVE    #0,D1 *Play line 1
-*         MOVE    #72,D0
-*         TRAP    #15
+*          MOVE    #0,D1 *Play line 1
+*          MOVE    #72,D0
+*          TRAP    #15
         
-*         MOVE.L #$00FFFFFF, D1 *Set text colour
-*         MOVE.L #$06090000,D2 *Set font, size, etc
-*         MOVE.B #21, D0
-*         TRAP #15
+*          MOVE.L #WHITE, D1 *Set text colour
+*          MOVE.L #$06090000,D2 *Set font, size, etc
+*          MOVE #21, D0
+*          TRAP #15
         
-*         LEA fear,A1
-*         MOVE.W #60, D1
-*         MOVE.W #100, D2
-*         MOVE.B #95, D0
-*         TRAP #15
+*          LEA fear,A1
+*         MOVE #60, D1
+*          MOVE #100, D2
+*          MOVE #95, D0
+*          TRAP #15
         
         
-*         move.l   #450,D1     ; delay in 1/100th of seconds
-*         moveq    #23,D0
-*         trap     #15
+*          move.l   #450,D1     ; delay in 1/100th of seconds
+*          moveq    #23,D0
+*          trap     #15
         
-*         LEA eldritch_WAV, A1 *Load line 2 into A1
-*         MOVE.B #1,D1
-*         MOVE.B #71, D0
-*         TRAP #15
+*          LEA eldritch_WAV, A1 *Load line 2 into A1
+*          MOVE.B #1,D1
+*          MOVE.B #71, D0
+*          TRAP #15
         
-*         MOVE.B    #1,D1 *Play line 2
-*         MOVE.B    #72,D0
-*         TRAP    #15
+*          MOVE.B    #1,D1 *Play line 2
+*          MOVE.B    #72,D0
+*          TRAP    #15
 
-*         LEA eldritch,A1
-*         MOVE.W #60, D1
-*         MOVE.W #120, D2
-*         MOVE.B #95, D0
-*         TRAP #15
+*          LEA eldritch,A1
+*          MOVE.W #60, D1
+*          MOVE.W #120, D2
+*          MOVE.B #95, D0
+*          TRAP #15
         
-*         move.l   #400,D1
-*         moveq    #23,D0
+*          move.l   #400,D1
+*          moveq    #23,D0
 *         trap     #15
         
-*         LEA reckon_WAV, A1 *Load line 3 into A1
-*         MOVE.B #1,D1
-*         MOVE.B #71, D0
-*         TRAP #15
+*          LEA reckon_WAV, A1 *Load line 3 into A1
+*          MOVE.B #1,D1
+*          MOVE.B #71, D0
+*          TRAP #15
         
-*         MOVE.B    #1,D1 *Play line 3
-*         MOVE.B    #72,D0
-*         TRAP    #15
+*          MOVE.B    #1,D1 *Play line 3
+*          MOVE.B    #72,D0
+*          TRAP    #15
         
-*         LEA how,A1
-*         MOVE.W #60, D1
-*         MOVE.W #140, D2
-*         MOVE.B #95, D0
-*         TRAP #15
+*          LEA how,A1
+*          MOVE.W #60, D1
+*          MOVE.W #140, D2
+*          MOVE.B #95, D0
+*          TRAP #15
         
-*         move.l   #400,D1
-*         moveq    #23,D0
-*         trap     #15
+*     MOVE.L   #400,D1
+*     MOVE    #23,D0
+*     TRAP     #15
         
-*         LEA find_WAV, A1 *Load line 4 into A1
-*         MOVE.B #2,D1
-*         MOVE.B #71, D0
-*         TRAP #15
+*     LEA find_WAV, A1 *Load line 4 into A1         
+*     MOVE.B #2,D1
+*     MOVE.B #71, D0
+*     TRAP #15
         
-*         MOVE.B    #2,D1 *Play line 4
-*         MOVE.B    #72,D0
-*         TRAP    #15
+*     MOVE.B    #2,D1 *Play line 4
+*     MOVE.B    #72,D0
+*     TRAP    #15
         
-*         MOVE.L #$00080888, D1
-*         MOVE.L #$06090000,D2
-*         MOVE.B #21, D0
-*         TRAP #15
+*     MOVE.L #RED, D1
+*     MOVE.L #$06090000,D2
+*     MOVE.B #21, D0
+*     TRAP #15
         
-*         LEA let,A1
-*         MOVE.W #60, D1
-*         MOVE.W #250, D2
-*         MOVE.B #95, D0
-*         TRAP #15
+*     LEA let,A1
+*     MOVE.W #60, D1
+*     MOVE.W #250, D2
+*     MOVE.B #95, D0
+*     TRAP #15
         
-*         move.l   #250,D1
-*         moveq    #23,D0
-*         trap     #15
+*     move.l   #250,D1
+*     moveq    #23,D0
+*     trap     #15
         
-*         MOVE.W #$FF00, D1
-*         MOVE.B #11, D0
-*         TRAP #15
+*     MOVE.W #$FF00, D1
+*     MOVE.B #11, D0
+*     TRAP #15
+*     CLR.B D0
+*     CLR.B D1
+*     CLR.B D2
+*     JMP INITIALISE
         
-INITIALIZE
-    ; Initialize Player Health
-    MOVE.B #100,(SANITY)
-    LEA $4000, A1
-    MOVE.B (A1), D3
+INITIALISE:
+    ; Initialise Sounds
+    BSR     RUN_LOAD                ; Load Run Sound into Memory
+    BSR     JUMP_LOAD               ; Load Jump Sound into Memory
+    BSR     OPPS_LOAD               ; Load Opps (Collision) Sound into Memory
 
-     ; Screen Size
+    ; Screen Size
     MOVE.B  #TC_SCREEN, D0          ; access screen information
     MOVE.L  #TC_S_SIZE, D1          ; placing 0 in D1 triggers loading screen size information
     TRAP    #15                     ; interpret D0 and D1 for screen size
@@ -146,6 +169,11 @@ INITIALIZE
     MOVE.W  SCREEN_H,   D1          ; Place Screen width in D1
     DIVU    #02,        D1          ; divide by 2 for center on Y Axis
     MOVE.L  D1,         PLAYER_Y    ; Players Y Position
+
+    ; Initialise Player Health
+    CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
+    MOVE.L  #100,        D1          ; Init Score
+    MOVE.L  D1,         PLAYER_SCORE
 
     ; Initialise Player Velocity
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -171,29 +199,43 @@ INITIALIZE
     MOVE.L  D1,         ENEMY_Y     ; Enemy Y Position
 
     ; Enable the screen back buffer(see easy 68k help)
-	MOVE.B  #92,D0          ; 92 Enables Double Buffer
+	MOVE.B  #TC_DBL_BUF,D0          ; 92 Enables Double Buffer
     MOVE.B  #17,        D1          ; Combine Tasks
 	TRAP	#15                     ; Trap (Perform action)
 
     ; Clear the screen (see easy 68k help)
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
 	MOVE.W  #$FF00,     D1          ; Fill Screen Clear
 	TRAP	#15                     ; Trap (Perform action)
-    
-GAME_LOOP
-    IF D3 <EQ> #0 THEN
-    JMP GAME_END
-    ENDI
-    SUB.B #10,D3
-    JMP GAME_LOOP
 
-; Process keyboard input 
-INPUT
+*-----------------------------------------------------------
+* Subroutine    : Game
+* Description   : Game including main GameLoop. GameLoop is like
+* a while loop in that it runs forever until interupted
+* (Input, Update, Draw). The Enemies Run at Player Jump to Avoid
+*-----------------------------------------------------------
+GAME:
+    BSR     PLAY_RUN                ; Play Run Wav
+GAMELOOP:
+    ; Main Gameloop
+    BSR     INPUT                   ; Check Keyboard Input
+    BSR     UPDATE                  ; Update positions and points
+    BSR     IS_PLAYER_ON_GND        ; Check if player is on ground
+    BSR     CHECK_COLLISIONS        ; Check for Collisions
+    BSR     DRAW                    ; Draw the Scene
+    BRA     GAMELOOP                ; Loop back to GameLoop
+
+*-----------------------------------------------------------
+* Subroutine    : Input
+* Description   : Process Keyboard Input
+*-----------------------------------------------------------
+INPUT:
+    ; Process Input
     CLR.L   D1                      ; Clear Data Register
-    MOVE.B  #19,        D0          ; Listen for Keys
+    MOVE.B  #TC_KEYCODE,D0          ; Listen for Keys
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  D1,         D2          ; Move last key D1 to D2
-    CMP.B   #0,         D2          ; Key is pressed
+    CMP.B   #00,        D2          ; Key is pressed
     BEQ     PROCESS_INPUT           ; Process Key
     TRAP    #15                     ; Trap for Last Key
     ; Check if key still pressed
@@ -201,15 +243,23 @@ INPUT
     BEQ     PROCESS_INPUT           ; Process Last Key
     RTS                             ; Return to subroutine
 
+*-----------------------------------------------------------
+* Subroutine    : Process Input
+* Description   : Branch based on keys pressed
+*-----------------------------------------------------------
 PROCESS_INPUT:
     MOVE.L  D2,         CURRENT_KEY ; Put Current Key in Memory
     CMP.L   #ESCAPE,    CURRENT_KEY ; Is Current Key Escape
     BEQ     EXIT                    ; Exit if Escape
-    CMP.L   #SPACEBAR,  CURRENT_KEY ; Is Current Key Spacebar
+    CMP.L   #UP_ARROW,  CURRENT_KEY ; Is Current Key Spacebar
     BEQ     JUMP                    ; Jump
     BRA     IDLE                    ; Or Idle
-    RTS
-;Update Player and Enemy positions
+    RTS                             ; Return to subroutine
+
+*-----------------------------------------------------------
+* Subroutine    : Update
+* Description   : Main update loop update Player and Enemies
+*-----------------------------------------------------------
 UPDATE:
     ; Update the Players Positon based on Velocity and Gravity
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -230,10 +280,28 @@ UPDATE:
 
     RTS                             ; Return to subroutine  
 
+*-----------------------------------------------------------
+* Subroutine    : Move Enemy
+* Description   : Move Enemy Right to Left
+*-----------------------------------------------------------
 MOVE_ENEMY:
     SUB.L   #01,        ENEMY_X     ; Move enemy by X Value
     RTS
 
+*-----------------------------------------------------------
+* Subroutine    : Reset Enemy
+* Description   : Reset Enemy if to passes 0 to Right of Screen
+*-----------------------------------------------------------
+RESET_ENEMY_POSITION:
+    CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
+    MOVE.W  SCREEN_W,   D1          ; Place Screen width in D1
+    MOVE.L  D1,         ENEMY_X     ; Enemy X Position
+    RTS
+
+*-----------------------------------------------------------
+* Subroutine    : Draw
+* Description   : Draw Screen
+*-----------------------------------------------------------
 DRAW: 
     ; Enable back buffer
     MOVE.B  #94,        D0
@@ -247,29 +315,33 @@ DRAW:
     BSR     DRAW_PLYR_DATA          ; Draw Draw Score, HUD, Player X and Y
     BSR     DRAW_PLAYER             ; Draw Player
     BSR     DRAW_ENEMY              ; Draw Enemy
-    RTS
-    
+    RTS                             ; Return to subroutine
+
+*-----------------------------------------------------------
+* Subroutine    : Draw Player Data
+* Description   : Draw Player X, Y, Velocity, Gravity and OnGround
+*-----------------------------------------------------------
 DRAW_PLYR_DATA:
-    CLR.L   D1                          ; Clear contents of D1 (XOR is faster)                             ; Return to subroutine
-    
-        ; Player SANITY Message
-    MOVE.B  #11,D0          ; Set Cursor Position
+    CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
+
+    ; Player Score Message
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0201,     D1          ; Col 02, Row 01
     TRAP    #15                     ; Trap (Perform action)
     LEA     SANITY_MSG,  A1          ; Score Message
     MOVE    #13,        D0          ; No Line feed
     TRAP    #15                     ; Trap (Perform action)
 
-    ; Player SANITY Value
-    MOVE.B  #11,D0          ; Set Cursor Position
+    ; Player Score Value
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0901,     D1          ; Col 09, Row 01
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  SANITY,D1         ; Move Score to D1.L
+    MOVE.L  PLAYER_SCORE,D1         ; Move Score to D1.L
     TRAP    #15                     ; Trap (Perform action)
-
+    
     ; Player X Message
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0202,     D1          ; Col 02, Row 02
     TRAP    #15                     ; Trap (Perform action)
     LEA     X_MSG,      A1          ; X Message
@@ -277,7 +349,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player X
-    MOVE.B  #11, D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P, D0          ; Set Cursor Position
     MOVE.W  #$0502,     D1          ; Col 05, Row 02
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
@@ -285,7 +357,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player Y Message
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$1002,     D1          ; Col 10, Row 02
     TRAP    #15                     ; Trap (Perform action)
     LEA     Y_MSG,      A1          ; Y Message
@@ -293,7 +365,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player Y
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$1202,     D1          ; Col 12, Row 02
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
@@ -301,7 +373,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action) 
 
     ; Player Velocity Message
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0203,     D1          ; Col 02, Row 03
     TRAP    #15                     ; Trap (Perform action)
     LEA     V_MSG,      A1          ; Velocity Message
@@ -309,7 +381,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player Velocity
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0503,     D1          ; Col 05, Row 03
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
@@ -317,7 +389,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player Gravity Message
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$1003,     D1          ; Col 10, Row 03
     TRAP    #15                     ; Trap (Perform action)
     LEA     G_MSG,      A1          ; G Message
@@ -325,7 +397,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player Gravity
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$1203,     D1          ; Col 12, Row 03
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
@@ -333,7 +405,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
 
     ; Player On Ground Message
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0204,     D1          ; Col 10, Row 03
     TRAP    #15                     ; Trap (Perform action)
     LEA     GND_MSG,    A1          ; On Ground Message
@@ -341,7 +413,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player On Ground
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0604,     D1          ; Col 06, Row 04
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
@@ -349,7 +421,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
 
     ; Show Keys Pressed
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$2001,     D1          ; Col 20, Row 1
     TRAP    #15                     ; Trap (Perform action)
     LEA     KEYCODE_MSG, A1         ; Keycode
@@ -357,7 +429,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
 
     ; Show KeyCode
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$3001,     D1          ; Col 30, Row 1
     TRAP    #15                     ; Trap (Perform action)    
     MOVE.L  CURRENT_KEY,D1          ; Move Key Pressed to D1
@@ -365,7 +437,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
 
     ; Show if Update is Running
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0205,     D1          ; Col 02, Row 05
     TRAP    #15                     ; Trap (Perform action)
     LEA     UPDATE_MSG, A1          ; Update
@@ -373,7 +445,7 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
 
     ; Show if Draw is Running
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0206,     D1          ; Col 02, Row 06
     TRAP    #15                     ; Trap (Perform action)
     LEA     DRAW_MSG,   A1          ; Draw
@@ -381,14 +453,19 @@ DRAW_PLYR_DATA:
     TRAP    #15                     ; Trap (Perform action)
 
     ; Show if Idle is Running
-    MOVE.B  #11,D0          ; Set Cursor Position
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0207,     D1          ; Col 02, Row 07
     TRAP    #15                     ; Trap (Perform action)
     LEA     IDLE_MSG,   A1          ; Move Idle Message to A1
     MOVE    #13,        D0          ; No Line feed
     TRAP    #15                     ; Trap (Perform action)
-    RTS  
 
+    RTS  
+    
+*-----------------------------------------------------------
+* Subroutine    : Player is on Ground
+* Description   : Check if the Player is on or off Ground
+*-----------------------------------------------------------
 IS_PLAYER_ON_GND:
     ; Check if Player is on Ground
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -401,6 +478,11 @@ IS_PLAYER_ON_GND:
     BLT     SET_OFF_GROUND          ; The Player is off the Ground
     RTS                             ; Return to subroutine
 
+
+*-----------------------------------------------------------
+* Subroutine    : On Ground
+* Description   : Set the Player On Ground
+*-----------------------------------------------------------
 SET_ON_GROUND:
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
     MOVE.W  SCREEN_H,   D1          ; Place Screen width in D1
@@ -412,10 +494,17 @@ SET_ON_GROUND:
     MOVE.L  #GND_TRUE,  PLYR_ON_GND ; Player is on Ground
     RTS
 
+*-----------------------------------------------------------
+* Subroutine    : Off Ground
+* Description   : Set the Player Off Ground
+*-----------------------------------------------------------
 SET_OFF_GROUND:
     MOVE.L  #GND_FALSE, PLYR_ON_GND ; Player if off Ground
-    RTS
-
+    RTS                             ; Return to subroutine
+*-----------------------------------------------------------
+* Subroutine    : Jump
+* Description   : Perform a Jump
+*-----------------------------------------------------------
 JUMP:
     CMP.L   #GND_TRUE,PLYR_ON_GND   ; Player is on the Ground ?
     BEQ     PERFORM_JUMP            ; Do Jump
@@ -427,6 +516,62 @@ PERFORM_JUMP:
 JUMP_DONE:
     RTS                             ; Return to subroutine
 
+*-----------------------------------------------------------
+* Subroutine    : Idle
+* Description   : Perform a Idle
+*----------------------------------------------------------- 
+IDLE:
+    BSR     PLAY_RUN                ; Play Run Wav
+    RTS                             ; Return to subroutine
+
+*-----------------------------------------------------------
+* Subroutines   : Sound Load and Play
+* Description   : Initialise game sounds into memory 
+* Current Sounds are RUN, JUMP and Opps for Collision
+*-----------------------------------------------------------
+RUN_LOAD:
+    LEA     RUN_WAV,    A1          ; Load Wav File into A1
+    MOVE    #RUN_INDEX, D1          ; Assign it INDEX
+    MOVE    #71,        D0          ; Load into memory
+    TRAP    #15                     ; Trap (Perform action)
+    RTS                             ; Return to subroutine
+
+PLAY_RUN:
+    MOVE    #RUN_INDEX, D1          ; Load Sound INDEX
+    MOVE    #72,        D0          ; Play Sound
+    TRAP    #15                     ; Trap (Perform action)
+    RTS                             ; Return to subroutine
+
+JUMP_LOAD:
+    LEA     JUMP_WAV,   A1          ; Load Wav File into A1
+    MOVE    #JMP_INDEX, D1          ; Assign it INDEX
+    MOVE    #71,        D0          ; Load into memory
+    TRAP    #15                     ; Trap (Perform action)
+    RTS                             ; Return to subroutine
+
+PLAY_JUMP:
+    MOVE    #JMP_INDEX, D1          ; Load Sound INDEX
+    MOVE    #72,        D0          ; Play Sound
+    TRAP    #15                     ; Trap (Perform action)
+    RTS                             ; Return to subroutine
+
+OPPS_LOAD:
+    LEA     OPPS_WAV,   A1          ; Load Wav File into A1
+    MOVE    #OPPS_INDEX,D1          ; Assign it INDEX
+    MOVE    #71,        D0          ; Load into memory
+    TRAP    #15                     ; Trap (Perform action)
+    RTS                             ; Return to subroutine
+
+PLAY_OPPS:
+    MOVE    #OPPS_INDEX,D1          ; Load Sound INDEX
+    MOVE    #72,        D0          ; Play Sound
+    TRAP    #15                     ; Trap (Perform action)
+    RTS                             ; Return to subroutine
+
+*-----------------------------------------------------------
+* Subroutine    : Draw Player
+* Description   : Draw Player Square
+*-----------------------------------------------------------
 DRAW_PLAYER:
     ; Set Pixel Colors
     MOVE.L  #WHITE,     D1          ; Set Background color
@@ -446,6 +591,10 @@ DRAW_PLAYER:
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
 
+*-----------------------------------------------------------
+* Subroutine    : Draw Enemy
+* Description   : Draw Enemy Square
+*-----------------------------------------------------------
 DRAW_ENEMY:
     ; Set Pixel Colors
     MOVE.L  #RED,       D1          ; Set Background color
@@ -465,10 +614,19 @@ DRAW_ENEMY:
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
 
+*-----------------------------------------------------------
+* Subroutine    : Collision Check
+* Description   : Axis-Aligned Bounding Box Collision Detection
+* Algorithm checks for overlap on the 4 sides of the Player and 
+* Enemy rectangles
+* PLAYER_X <= ENEMY_X + ENEMY_W &&
+* PLAYER_X + PLAYER_W >= ENEMY_X &&
+* PLAYER_Y <= ENEMY_Y + ENEMY_H &&
+* PLAYER_H + PLAYER_Y >= ENEMY_Y
+*-----------------------------------------------------------
 CHECK_COLLISIONS:
     CLR.L   D1                      ; Clear D1
     CLR.L   D2                      ; Clear D2
-
 PLAYER_X_LTE_TO_ENEMY_X_PLUS_W:
     MOVE.L  PLAYER_X,   D1          ; Move Player X to D1
     MOVE.L  ENEMY_X,    D2          ; Move Enemy X to D2
@@ -476,14 +634,12 @@ PLAYER_X_LTE_TO_ENEMY_X_PLUS_W:
     CMP.L   D1,         D2          ; Do the Overlap ?
     BLE     PLAYER_X_PLUS_W_LTE_TO_ENEMY_X  ; Less than or Equal ?
     BRA     COLLISION_CHECK_DONE    ; If not no collision
-
 PLAYER_X_PLUS_W_LTE_TO_ENEMY_X:     ; Check player is not  
     ADD.L   PLYR_W_INIT,D1          ; Move Player Width to D1
     MOVE.L  ENEMY_X,    D2          ; Move Enemy X to D2
     CMP.L   D1,         D2          ; Do they OverLap ?
     BGE     PLAYER_Y_LTE_TO_ENEMY_Y_PLUS_H  ; Less than or Equal
     BRA     COLLISION_CHECK_DONE    ; If not no collision   
-
 PLAYER_Y_LTE_TO_ENEMY_Y_PLUS_H:     
     MOVE.L  PLAYER_Y,   D1          ; Move Player Y to D1
     MOVE.L  ENEMY_Y,    D2          ; Move Enemy Y to D2
@@ -491,38 +647,44 @@ PLAYER_Y_LTE_TO_ENEMY_Y_PLUS_H:
     CMP.L   D1,         D2          ; Do they Overlap ?
     BLE     PLAYER_Y_PLUS_H_LTE_TO_ENEMY_Y  ; Less than or Equal
     BRA     COLLISION_CHECK_DONE    ; If not no collision 
-
 PLAYER_Y_PLUS_H_LTE_TO_ENEMY_Y:     ; Less than or Equal ?
     ADD.L   PLYR_H_INIT,D1          ; Add Player Height to D1
     MOVE.L  ENEMY_Y,    D2          ; Move Enemy Height to D2  
     CMP.L   D1,         D2          ; Do they OverLap ?
     BGE     COLLISION               ; Collision !
     BRA     COLLISION_CHECK_DONE    ; If not no collision
-
 COLLISION_CHECK_DONE:               ; No Collision Update points
-    ADD.L   #POINTS,    D1          ; Move points upgrade to D1
-    ADD.L   PLAYER_SCORE,D1         ; Add to current player score
-    MOVE.L  D1, PLAYER_SCORE        ; Update player score in memory
     RTS                             ; Return to subroutine
 
 COLLISION:
-    SUB.L #10, D3
-    MOVE.L  #00, PLAYER_SCORE       ; Reset Player Score
+    BSR     PLAY_OPPS               ; Play Opps Wav
+    SUB.L  #10, PLAYER_SCORE       ; Take 10 from score
     RTS                             ; Return to subroutine
 
-;TODO add clock, add health subtraction
+*-----------------------------------------------------------
+* Subroutine    : EXIT
+* Description   : Exit message and End Game
+*-----------------------------------------------------------
+EXIT:
+    ; Show if Exiting is Running
+    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
+    MOVE.W  #$4004,     D1          ; Col 40, Row 1
+    TRAP    #15                     ; Trap (Perform action)
+    LEA     EXIT_MSG,   A1          ; Exit
+    MOVE    #13,        D0          ; No Line feed
+    TRAP    #15                     ; Trap (Perform action)
+    MOVE.B  #TC_EXIT,   D0          ; Exit Code
+    TRAP    #15                     ; Trap (Perform action)
+    SIMHALT
 
-GAME_END
-
-        
-        
-;end of game boot dialogue
-        
-        
 
     
 
-    SIMHALT             ; halt simulator
+ 
+    
+
+
+
 
 * Put variables and constants here
 
@@ -537,9 +699,72 @@ eldritch_WAV dc.b 'sounds/eldritch.wav',0
 reckon_WAV dc.b 'sounds/reckon.wav',0
 find_WAV dc.b 'sounds/find.wav',0
 
-;
+SANITY_MSG       DC.B    'Sanity : ', 0       ; Score Message
+KEYCODE_MSG     DC.B    'KeyCode : ', 0     ; Keycode Message
+JUMP_MSG        DC.B    'Jump....', 0       ; Jump Message
+
+IDLE_MSG        DC.B    'Idle....', 0       ; Idle Message
+UPDATE_MSG      DC.B    'Update....', 0     ; Update Message
+DRAW_MSG        DC.B    'Draw....', 0       ; Draw Message
+
+X_MSG           DC.B    'X:', 0             ; X Position Message
+Y_MSG           DC.B    'Y:', 0             ; Y Position Message
+V_MSG           DC.B    'V:', 0             ; Velocity Position Message
+G_MSG           DC.B    'G:', 0             ; Gravity Position Message
+GND_MSG         DC.B    'GND:', 0           ; On Ground Position Message
+
+EXIT_MSG        DC.B    'Exiting....', 0    ; Exit Message
+
+*-----------------------------------------------------------
+* Section       : Graphic Colors
+* Description   : Screen Pixel Color
+*-----------------------------------------------------------
+WHITE           EQU     $00FFFFFF
+RED             EQU     $00080888
+
+*-----------------------------------------------------------
+* Section       : Screen Size
+* Description   : Screen Width and Height
+*-----------------------------------------------------------
+SCREEN_W        DS.W    01  ; Reserve Space for Screen Width
+SCREEN_H        DS.W    01  ; Reserve Space for Screen Height
+
+*-----------------------------------------------------------
+* Section       : Keyboard Input
+* Description   : Used for storing Keypresses
+*-----------------------------------------------------------
+CURRENT_KEY     DS.L    01  ; Reserve Space for Current Key Pressed
+
+*-----------------------------------------------------------
+* Section       : Character Positions
+* Description   : Player and Enemy Position Memory Locations
+*-----------------------------------------------------------
+PLAYER_X        DS.L    01  ; Reserve Space for Player X Position
+PLAYER_Y        DS.L    01  ; Reserve Space for Player Y Position
+PLAYER_SCORE    DS.L    01  ; Reserve Space for Player Score
+
+PLYR_VELOCITY   DS.L    01  ; Reserve Space for Player Velocity
+PLYR_GRAVITY    DS.L    01  ; Reserve Space for Player Gravity
+PLYR_ON_GND     DS.L    01  ; Reserve Space for Player on Ground
+
+ENEMY_X         DS.L    01  ; Reserve Space for Enemy X Position
+ENEMY_Y         DS.L    01  ; Reserve Space for Enemy Y Position
+
+JUMP_WAV        DC.B    'jump.wav',0        ; Jump Sound
+RUN_WAV         DC.B    'run.wav',0         ; Run Sound
+OPPS_WAV        DC.B    'opps.wav',0        ; Collision Opps
+
+
+
+
+
+
+
 
     END    START        ; last line of source
+
+
+
 
 
 
