@@ -171,9 +171,9 @@ INITIALISE:
     MOVE.L  D1,         PLAYER_Y    ; Players Y Position
 
     ; Initialise Player Health
-    CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
+    CLR.B   D1                      ; Clear contents of D1 (XOR is faster)
     MOVE.L  #100,        D1          ; Init Score
-    MOVE.L  D1,         PLAYER_SCORE
+    MOVE.L  D1,         (PLAYER_HEALTH)
 
     ; Initialise Player Velocity
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -218,12 +218,25 @@ GAME:
     BSR     PLAY_RUN                ; Play Run Wav
 GAMELOOP:
     ; Main Gameloop
+    MOVEQ        #8,d0                * get time in 1/100 ths seconds
+    TRAP        #15
+
+    MOVE.l    d1,-(sp)            * push time on the stack
     BSR     INPUT                   ; Check Keyboard Input
     BSR     UPDATE                  ; Update positions and points
     BSR     IS_PLAYER_ON_GND        ; Check if player is on ground
     BSR     CHECK_COLLISIONS        ; Check for Collisions
     BSR     DRAW                    ; Draw the Scene
-    BRA     GAMELOOP                ; Loop back to GameLoop
+    MOVE.l    (sp)+,d7
+wait:
+    MOVEQ        #8,d0                * get time in 1/100 ths seconds
+    TRAP        #15
+
+    SUB.l        d7,d1                * subtract previous time from current time
+    CMP.b        #2,d1                * compare with 9/100ths
+    BMI.s        wait                * loop if time not up yet
+
+    BRA        GAMELOOP                * loop forever
 
 *-----------------------------------------------------------
 * Subroutine    : Input
@@ -285,7 +298,7 @@ UPDATE:
 * Description   : Move Enemy Right to Left
 *-----------------------------------------------------------
 MOVE_ENEMY:
-    SUB.L   #01,        ENEMY_X     ; Move enemy by X Value
+    SUB.L   #5,        ENEMY_X     ; Move enemy by X Value
     RTS
 
 *-----------------------------------------------------------
@@ -337,7 +350,7 @@ DRAW_PLYR_DATA:
     MOVE.W  #$0901,     D1          ; Col 09, Row 01
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLAYER_SCORE,D1         ; Move Score to D1.L
+    MOVE.L  PLAYER_HEALTH,D1         ; Move Score to D1.L
     TRAP    #15                     ; Trap (Perform action)
     
     ; Player X Message
@@ -658,8 +671,19 @@ COLLISION_CHECK_DONE:               ; No Collision Update points
 
 COLLISION:
     BSR     PLAY_OPPS               ; Play Opps Wav
-    SUB.L  #10, PLAYER_SCORE       ; Take 10 from score
+    SUB.L  #20, PLAYER_HEALTH       ; Take 10 from score
+    IF.L (PLAYER_HEALTH) <EQ> #0 THEN
+        JMP EXIT
+    ENDI
     RTS                             ; Return to subroutine
+    
+
+*-----------------------------------------------------------
+* Subroutine    : RESTART
+* Description   : Resets the game
+*-----------------------------------------------------------
+RESTART:
+    
 
 *-----------------------------------------------------------
 * Subroutine    : EXIT
@@ -741,7 +765,7 @@ CURRENT_KEY     DS.L    01  ; Reserve Space for Current Key Pressed
 *-----------------------------------------------------------
 PLAYER_X        DS.L    01  ; Reserve Space for Player X Position
 PLAYER_Y        DS.L    01  ; Reserve Space for Player Y Position
-PLAYER_SCORE    DS.L    01  ; Reserve Space for Player Score
+PLAYER_HEALTH    DS.L    01  ; Reserve Space for Player Health
 
 PLYR_VELOCITY   DS.L    01  ; Reserve Space for Player Velocity
 PLYR_GRAVITY    DS.L    01  ; Reserve Space for Player Gravity
@@ -762,6 +786,8 @@ OPPS_WAV        DC.B    'opps.wav',0        ; Collision Opps
 
 
     END    START        ; last line of source
+
+
 
 
 
