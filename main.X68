@@ -16,7 +16,7 @@ TC_CURSR_P  EQU         11          ; Trap code cursor position
 TC_EXIT     EQU         09          ; Exit Trapcode
 
 * Player Health
-SANITY EQU $4000
+HEALTH EQU $4000
 
 * Key Inputs
 LEFT_ARROW  EQU         $25
@@ -51,6 +51,12 @@ ENMY_W_INIT EQU         08          ; Enemy initial Width
 ENMY_H_INIT EQU         08          ; Enemy initial Height
 
 POINTS      EQU         01          ; Points added
+
+GET_START_TIME:
+    MOVE.B #8, D0
+    TRAP #15
+    MOVE.L D1, START_TIME
+    CLR D1
 
 ;Game boot dialogue start
 
@@ -157,10 +163,10 @@ INITIALISE:
     DIVU    #02,        D1          ; divide by 2 for center on Y Axis
     MOVE.L  D1,         PLAYER_Y    ; Players Y Position
 
-    ; Initialise Player Sanity
+    ; Initialise Player HEALTH
     CLR.B   D1                      ; Clear contents of D1 (XOR is faster)
     MOVE.L  #100,        D1          ; Init Score
-    MOVE.L  D1,         (PLAYER_SANITY)
+    MOVE.L  D1,         (PLAYER_HEALTH)
 
     ; Initialise Player Velocity
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -207,8 +213,12 @@ GAMELOOP:
     ; Main Gameloop
     MOVEQ        #8,d0                * get time in 1/100 ths seconds
     TRAP        #15
+    MOVE.L  D1,TIME_ELAPSED
+    
+    
 
     MOVE.l    D1,-(sp)            * push time on the stack
+    BSR TIME
     BSR     INPUT                   ; Check Keyboard Input
     BSR     UPDATE                  ; Update positions and points
     BSR     IS_PLAYER_ON_GND        ; Check if player is on ground
@@ -220,7 +230,7 @@ wait:
     TRAP        #15
 
     SUB.l        d7,D1                * subtract previous time from current time
-    CMP.b        #2,D1                * compare with 9/100ths
+    CMP.b        #2,D1                * compare with 2/100ths
     BMI.s        wait                * loop if time not up yet
 
     BRA        GAMELOOP                * loop forever
@@ -261,6 +271,8 @@ PROCESS_INPUT:
 * Description   : Main update loop update Player and Enemies
 *-----------------------------------------------------------
 UPDATE:
+
+    
     ; Update the Players Positon based on Velocity and Gravity
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
     MOVE.L  PLYR_VELOCITY, D1       ; Fetch Player Velocity
@@ -277,8 +289,8 @@ UPDATE:
     CMP.L   #00,        D1
     BLE     RESET_ENEMY_POSITION    ; Reset Enemy if off Screen
     BRA     MOVE_ENEMY              ; Move the Enemy
-
-    RTS                             ; Return to subroutine  
+    
+    RTS                             ; Return to subroutine
 
 *-----------------------------------------------------------
 * Subroutine    : Move Enemy
@@ -328,16 +340,13 @@ DRAW_PLYR_DATA:
     MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0201,     D1          ; Col 02, Row 01
     TRAP    #15                     ; Trap (Perform action)
-    LEA     SANITY_MSG,  A1          ; Score Message
-    MOVE    #13,        D0          ; No Line feed
+    LEA     HEALTH_MSG,  A1          ; Score Message
+    MOVE    #14,        D0          ; No Line feed
     TRAP    #15                     ; Trap (Perform action)
 
     ; Player Score Value
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$1001,     D1          ; Col 09, Row 01
-    TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLAYER_SANITY,D1         ; Move Score to D1.L
+    MOVE.L  PLAYER_HEALTH,D1         ; Move Score to D1.L
     TRAP    #15                     ; Trap (Perform action)
     
     ; Time Message
@@ -345,22 +354,52 @@ DRAW_PLYR_DATA:
     MOVE.W #$0202, D1
     TRAP #15
     LEA TIME_MSG, A1
-    MOVE #13, D0
+    MOVE #14, D0
     TRAP #15
     
     ; SHOW TIME
-    MOVE.B #TC_CURSR_P, D0
-    MOVE.W #0902, D1
+    MOVE.W TIME_IN_MIN, D1
+    MOVE.B #3, D0
     TRAP #15
-    MOVE.B #8, D0
+    
+    LEA TIME_BREAK, A1
+    MOVE.B #14,D0
     TRAP #15
+    
+    MOVE.W TIME_IN_SEC, D1
+    MOVE.B #3,D0
+    TRAP #15
+    
 
-    RTS  
+    RTS
+
+*-----------------------------------------------------------
+* Subroutine    : Time
+* Description   : Keeps Track of the current time
+*-----------------------------------------------------------
+TIME:    
+    MOVE.L TIME_ELAPSED, D1
+    SUB.L  START_TIME, D1
+    
+    DIVU    #100, D1
+    AND.L   #$FFFF, D1
+    
+   
+    
+    DIVU    #60,D1
+    MOVE.W  D1,TIME_IN_MIN
+    
+    SWAP    D1
+    MOVE.W  D1,TIME_IN_SEC
+RTS
+    
+  
     
 *-----------------------------------------------------------
 * Subroutine    : Player is on Ground
 * Description   : Check if the Player is on or off Ground
 *-----------------------------------------------------------
+
 IS_PLAYER_ON_GND:
     ; Check if Player is on Ground
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -575,6 +614,7 @@ DRAW_ENEMY:
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
 
+
 *-----------------------------------------------------------
 * Subroutine    : Collision Check
 * Description   : Axis-Aligned Bounding Box Collision Detection
@@ -619,10 +659,27 @@ COLLISION_CHECK_DONE:               ; No Collision Update points
 
 COLLISION:
     BSR     PLAY_OPPS               ; Play Opps Wav
-    SUB.L  #20, PLAYER_SANITY       ; Take 10 from score
-    IF.L (PLAYER_SANITY) <EQ> #0 THEN
-        BSR DEATH_PLAY
-        JMP RESTART
+    SUB.L  #20, PLAYER_HEALTH       ; Take 10 from score
+    IF.L (PLAYER_HEALTH) <EQ> #0 THEN
+    BSR DEATH_PLAY
+    MOVE.B	#TC_CURSR_P,D0          ; Set Cursor Position
+	MOVE.W	#$FF00,     D1          ; Clear contents
+	TRAP    #15                     ; Trap (Perform action)
+
+    BSR     DRAW_PLYR_DATA          ; Draw Draw Score, HUD, Player X and Y
+    BSR     DRAW_PLAYER             ; Draw Player
+    BSR     DRAW_ENEMY              ; Draw Enemy
+    
+    
+    MOVE.B  #94,        D0
+    TRAP    #15
+    
+    MOVE.B	#TC_CURSR_P,D0          ; Set Cursor Position
+	MOVE.W	#$FF00,     D1          ; Clear contents
+	TRAP    #15
+	
+    JMP    EXIT
+        
     ENDI
     RTS                             ; Return to subroutine
     
@@ -658,24 +715,18 @@ EXIT:
     TRAP    #15                     ; Trap (Perform action)
     SIMHALT
 
-
-    
-
- 
-    
-
-
-
-
 * Put variables and constants here
 
-;Boot Sequence
+*-----------------------------------------------------------
+* Section       : Messages
+* Description   : Messages to be displayed to the screen
+*-----------------------------------------------------------
 fear dc.b 'We fear not the darkness itself, but what lies within.',0
 eldritch dc.b 'Eldritch horrors beyond human comprehension.',0
 how dc.b 'How long do you reckon you can outrun them?',0
 let dc.b 'Let us find out......',0
 
-SANITY_MSG       DC.B    'Sanity: ', 0       ; Score Message
+HEALTH_MSG      DC.B    'HEALTH: ', 0       ; Score Message
 KEYCODE_MSG     DC.B    'KeyCode : ', 0     ; Keycode Message
 JUMP_MSG        DC.B    'Jump....', 0       ; Jump Message
 
@@ -688,7 +739,8 @@ Y_MSG           DC.B    'Y:', 0             ; Y Position Message
 V_MSG           DC.B    'V:', 0             ; Velocity Position Message
 G_MSG           DC.B    'G:', 0             ; Gravity Position Message
 GND_MSG         DC.B    'GND:', 0           ; On Ground Position Message
-TIME_MSG        DC.B    'Time:', 0          ; Time Message
+TIME_MSG        DC.B    'TIME: ', 0          ; Time Message
+TIME_BREAK      DC.B    ':',0
 
 EXIT_MSG        DC.B    'Exiting....', 0    ; Exit Message
 
@@ -718,7 +770,7 @@ CURRENT_KEY     DS.L    01  ; Reserve Space for Current Key Pressed
 *-----------------------------------------------------------
 PLAYER_X        DS.L    01  ; Reserve Space for Player X Position
 PLAYER_Y        DS.L    01  ; Reserve Space for Player Y Position
-PLAYER_SANITY    DS.L    01  ; Reserve Space for Player Health
+PLAYER_HEALTH    DS.L    01  ; Reserve Space for Player Health
 
 PLYR_VELOCITY   DS.L    01  ; Reserve Space for Player Velocity
 PLYR_GRAVITY    DS.L    01  ; Reserve Space for Player Gravity
@@ -726,6 +778,16 @@ PLYR_ON_GND     DS.L    01  ; Reserve Space for Player on Ground
 
 ENEMY_X         DS.L    01  ; Reserve Space for Enemy X Position
 ENEMY_Y         DS.L    01  ; Reserve Space for Enemy Y Position
+
+START_TIME      DS.L    01
+TIME_ELAPSED    DS.L    01
+TIME_IN_SEC     DS.L    01
+TIME_IN_MIN     DS.L    01
+
+*-----------------------------------------------------------
+* Section       : Sounds
+* Description   : Player sounds
+*-----------------------------------------------------------
 
 JUMP_WAV        DC.B    'sounds/jump.wav',0        ; Jump Sound
 RUN_WAV         DC.B    'sounds/run.wav',0         ; Run Sound
@@ -738,14 +800,11 @@ find_WAV        dc.b    'sounds/find.wav',0
 DEATH_WAV       DC.b    'sounds/death.wav',0
 
 
-
-
-
-
-
-
-
     END    START        ; last line of source
+
+
+
+
 
 
 
