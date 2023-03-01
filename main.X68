@@ -19,10 +19,10 @@ TC_EXIT     EQU         09          ; Exit Trapcode
 SANITY EQU $4000
 
 * Key Inputs
-LEFT_ARROW EQU $25
-UP_ARROW EQU $26
-RIGHT_ARROW EQU $27
-DOWN_ARROW EQU $28
+LEFT_ARROW  EQU         $25
+UP_ARROW    EQU         $26
+RIGHT_ARROW EQU         $27
+DOWN_ARROW  EQU         $28
 SPACEBAR    EQU         $20         ; Spacebar ASCII Keycode
 ESCAPE      EQU         $1B         ; Escape ASCII Keycode
 
@@ -40,6 +40,11 @@ GND_FALSE   EQU         00          ; Player on Ground False
 RUN_INDEX   EQU         00          ; Player Run Sound Index  
 JMP_INDEX   EQU         01          ; Player Jump Sound Index  
 OPPS_INDEX  EQU         02          ; Player Opps Sound Index
+WITHIN_INDEX EQU        03
+ELDRITCH_INDEX EQU      04
+RECKON_INDEX EQU        06
+FIND_INDEX  EQU         08
+DEATH_INDEX EQU         10
 
 * Enemy Setup
 ENMY_W_INIT EQU         08          ; Enemy initial Width
@@ -50,106 +55,88 @@ POINTS      EQU         01          ; Points added
 ;Game boot dialogue start
 
 * GAME_BOOT:
-*          LEA within_WAV, A1 *Load first line into A1
-*          MOVE #0,D1
-*          MOVE #71, D0
-*          TRAP #15
+*         BSR     WITHIN_LOAD
+*         BSR     PLAY_WITHIN
         
-*          MOVE    #0,D1 *Play line 1
-*          MOVE    #72,D0
-*          TRAP    #15
+*         MOVE.L #WHITE, D1 *Set text colour
+*         MOVE.L #$06090000,D2 *Set font, size, etc
+*         MOVE #21, D0
+*         TRAP #15
         
-*          MOVE.L #WHITE, D1 *Set text colour
-*          MOVE.L #$06090000,D2 *Set font, size, etc
-*          MOVE #21, D0
-*          TRAP #15
-        
-*          LEA fear,A1
+*         LEA fear,A1
 *         MOVE #60, D1
-*          MOVE #100, D2
-*          MOVE #95, D0
-*          TRAP #15
+*         MOVE #100, D2
+*         MOVE #95, D0
+*         TRAP #15
         
         
-*          move.l   #450,D1     ; delay in 1/100th of seconds
-*          moveq    #23,D0
-*          trap     #15
-        
-*          LEA eldritch_WAV, A1 *Load line 2 into A1
-*          MOVE.B #1,D1
-*          MOVE.B #71, D0
-*          TRAP #15
-        
-*          MOVE.B    #1,D1 *Play line 2
-*          MOVE.B    #72,D0
-*          TRAP    #15
-
-*          LEA eldritch,A1
-*          MOVE.W #60, D1
-*          MOVE.W #120, D2
-*          MOVE.B #95, D0
-*          TRAP #15
-        
-*          move.l   #400,D1
-*          moveq    #23,D0
+*         move.l   #450,D1     ; delay in 1/100th of seconds
+*         moveq    #23,D0
 *         trap     #15
         
-*          LEA reckon_WAV, A1 *Load line 3 into A1
-*          MOVE.B #1,D1
-*          MOVE.B #71, D0
-*          TRAP #15
+*         BSR ELDRITCH_LOAD
+*         BSR PLAY_ELDRITCH
+
+*         LEA eldritch,A1
+*         MOVE.W #60, D1
+*         MOVE.W #120, D2
+*         MOVE.B #95, D0
+*         TRAP #15
         
-*          MOVE.B    #1,D1 *Play line 3
-*          MOVE.B    #72,D0
-*          TRAP    #15
+*         move.l   #400,D1
+*         moveq    #23,D0
+*         trap     #15
         
-*          LEA how,A1
-*          MOVE.W #60, D1
-*          MOVE.W #140, D2
-*          MOVE.B #95, D0
-*          TRAP #15
+*         BSR RECKON_LOAD
+*         BSR PLAY_RECKON      
         
-*     MOVE.L   #400,D1
-*     MOVE    #23,D0
-*     TRAP     #15
+*         LEA how,A1
+*         MOVE.W #60, D1
+*         MOVE.W #140, D2
+*         MOVE.B #95, D0
+*         TRAP #15
         
-*     LEA find_WAV, A1 *Load line 4 into A1         
-*     MOVE.B #2,D1
-*     MOVE.B #71, D0
-*     TRAP #15
+*         MOVE.L   #400,D1
+*         MOVE    #23,D0
+*         TRAP     #15
         
-*     MOVE.B    #2,D1 *Play line 4
-*     MOVE.B    #72,D0
-*     TRAP    #15
+*         BSR FIND_LOAD
+*         BSR FIND_PLAY
         
-*     MOVE.L #RED, D1
-*     MOVE.L #$06090000,D2
-*     MOVE.B #21, D0
-*     TRAP #15
+*         MOVE.L #RED, D1
+*         MOVE.L #$06090000,D2
+*         MOVE.B #21, D0
+*         TRAP #15
         
-*     LEA let,A1
-*     MOVE.W #60, D1
-*     MOVE.W #250, D2
-*     MOVE.B #95, D0
-*     TRAP #15
+*         LEA let,A1
+*         MOVE.W #60, D1
+*         MOVE.W #250, D2
+*         MOVE.B #95, D0
+*         TRAP #15
         
-*     move.l   #250,D1
-*     moveq    #23,D0
-*     trap     #15
+*         move.l   #250,D1
+*         moveq    #23,D0
+*         trap     #15
+
+*         MOVE.L #WHITE, D1 *Set text colour
+*         MOVE.L #$06090000,D2 *Set font, size, etc
+*         MOVE #21, D0
+*         TRAP #15
         
-*     MOVE.W #$FF00, D1
-*     MOVE.B #11, D0
-*     TRAP #15
-*     CLR.B D0
-*     CLR.B D1
-*     CLR.B D2
-*     JMP INITIALISE
+*         MOVE.W #$FF00, D1
+*         MOVE.B #11, D0
+*         TRAP #15
+        
+*         CLR D0
+*         CLR D1
+*         CLR D2
         
 INITIALISE:
     ; Initialise Sounds
     BSR     RUN_LOAD                ; Load Run Sound into Memory
     BSR     JUMP_LOAD               ; Load Jump Sound into Memory
     BSR     OPPS_LOAD               ; Load Opps (Collision) Sound into Memory
+    BSR     DEATH_LOAD
 
     ; Screen Size
     MOVE.B  #TC_SCREEN, D0          ; access screen information
@@ -170,10 +157,10 @@ INITIALISE:
     DIVU    #02,        D1          ; divide by 2 for center on Y Axis
     MOVE.L  D1,         PLAYER_Y    ; Players Y Position
 
-    ; Initialise Player Health
+    ; Initialise Player Sanity
     CLR.B   D1                      ; Clear contents of D1 (XOR is faster)
     MOVE.L  #100,        D1          ; Init Score
-    MOVE.L  D1,         (PLAYER_HEALTH)
+    MOVE.L  D1,         (PLAYER_SANITY)
 
     ; Initialise Player Velocity
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
@@ -221,7 +208,7 @@ GAMELOOP:
     MOVEQ        #8,d0                * get time in 1/100 ths seconds
     TRAP        #15
 
-    MOVE.l    d1,-(sp)            * push time on the stack
+    MOVE.l    D1,-(sp)            * push time on the stack
     BSR     INPUT                   ; Check Keyboard Input
     BSR     UPDATE                  ; Update positions and points
     BSR     IS_PLAYER_ON_GND        ; Check if player is on ground
@@ -232,8 +219,8 @@ wait:
     MOVEQ        #8,d0                * get time in 1/100 ths seconds
     TRAP        #15
 
-    SUB.l        d7,d1                * subtract previous time from current time
-    CMP.b        #2,d1                * compare with 9/100ths
+    SUB.l        d7,D1                * subtract previous time from current time
+    CMP.b        #2,D1                * compare with 9/100ths
     BMI.s        wait                * loop if time not up yet
 
     BRA        GAMELOOP                * loop forever
@@ -347,131 +334,26 @@ DRAW_PLYR_DATA:
 
     ; Player Score Value
     MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0901,     D1          ; Col 09, Row 01
+    MOVE.W  #$1001,     D1          ; Col 09, Row 01
     TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLAYER_HEALTH,D1         ; Move Score to D1.L
+    MOVE.L  PLAYER_SANITY,D1         ; Move Score to D1.L
     TRAP    #15                     ; Trap (Perform action)
     
-    ; Player X Message
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0202,     D1          ; Col 02, Row 02
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     X_MSG,      A1          ; X Message
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
+    ; Time Message
+    MOVE.B #TC_CURSR_P, D0
+    MOVE.W #$0202, D1
+    TRAP #15
+    LEA TIME_MSG, A1
+    MOVE #13, D0
+    TRAP #15
     
-    ; Player X
-    MOVE.B  #TC_CURSR_P, D0          ; Set Cursor Position
-    MOVE.W  #$0502,     D1          ; Col 05, Row 02
-    TRAP    #15                     ; Trap (Perform action)
-    MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLAYER_X,   D1          ; Move X to D1.L
-    TRAP    #15                     ; Trap (Perform action)
-    
-    ; Player Y Message
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$1002,     D1          ; Col 10, Row 02
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     Y_MSG,      A1          ; Y Message
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-    
-    ; Player Y
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$1202,     D1          ; Col 12, Row 02
-    TRAP    #15                     ; Trap (Perform action)
-    MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLAYER_Y,   D1          ; Move X to D1.L
-    TRAP    #15                     ; Trap (Perform action) 
-
-    ; Player Velocity Message
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0203,     D1          ; Col 02, Row 03
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     V_MSG,      A1          ; Velocity Message
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-    
-    ; Player Velocity
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0503,     D1          ; Col 05, Row 03
-    TRAP    #15                     ; Trap (Perform action)
-    MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLYR_VELOCITY,D1        ; Move X to D1.L
-    TRAP    #15                     ; Trap (Perform action)
-    
-    ; Player Gravity Message
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$1003,     D1          ; Col 10, Row 03
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     G_MSG,      A1          ; G Message
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-    
-    ; Player Gravity
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$1203,     D1          ; Col 12, Row 03
-    TRAP    #15                     ; Trap (Perform action)
-    MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLYR_GRAVITY,D1         ; Move Gravity to D1.L
-    TRAP    #15                     ; Trap (Perform action)
-
-    ; Player On Ground Message
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0204,     D1          ; Col 10, Row 03
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     GND_MSG,    A1          ; On Ground Message
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-    
-    ; Player On Ground
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0604,     D1          ; Col 06, Row 04
-    TRAP    #15                     ; Trap (Perform action)
-    MOVE.B  #03,        D0          ; Display number at D1.L
-    MOVE.L  PLYR_ON_GND,D1          ; Move Play on Ground ? to D1.L
-    TRAP    #15                     ; Trap (Perform action)
-
-    ; Show Keys Pressed
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$2001,     D1          ; Col 20, Row 1
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     KEYCODE_MSG, A1         ; Keycode
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-
-    ; Show KeyCode
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$3001,     D1          ; Col 30, Row 1
-    TRAP    #15                     ; Trap (Perform action)    
-    MOVE.L  CURRENT_KEY,D1          ; Move Key Pressed to D1
-    MOVE.B  #03,        D0          ; Display the contents of D1
-    TRAP    #15                     ; Trap (Perform action)
-
-    ; Show if Update is Running
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0205,     D1          ; Col 02, Row 05
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     UPDATE_MSG, A1          ; Update
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-
-    ; Show if Draw is Running
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0206,     D1          ; Col 02, Row 06
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     DRAW_MSG,   A1          ; Draw
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
-
-    ; Show if Idle is Running
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$0207,     D1          ; Col 02, Row 07
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     IDLE_MSG,   A1          ; Move Idle Message to A1
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
+    ; SHOW TIME
+    MOVE.B #TC_CURSR_P, D0
+    MOVE.W #0902, D1
+    TRAP #15
+    MOVE.B #8, D0
+    TRAP #15
 
     RTS  
     
@@ -580,6 +462,72 @@ PLAY_OPPS:
     MOVE    #72,        D0          ; Play Sound
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
+    
+WITHIN_LOAD:
+    LEA     WITHIN_WAV, A1
+    MOVE    #WITHIN_INDEX, D1
+    MOVE    #71, D0
+    TRAP    #15
+    RTS
+    
+PLAY_WITHIN:
+    MOVE #WITHIN_INDEX, D1
+    MOVE #72, D0
+    TRAP #15
+    RTS
+    
+ELDRITCH_LOAD:
+    LEA ELDRITCH_WAV, A1
+    MOVE ELDRITCH_INDEX, D1
+    MOVE #71, D0
+    TRAP #15
+    RTS
+
+PLAY_ELDRITCH:
+    MOVE ELDRITCH_INDEX,D1
+    MOVE #72,D0
+    TRAP #15
+    RTS
+
+RECKON_LOAD:
+    LEA RECKON_WAV, A1
+    MOVE RECKON_INDEX,D1
+    MOVE #71,D0
+    TRAP #15
+    RTS
+
+PLAY_RECKON:
+    MOVE RECKON_INDEX,D1
+    MOVE #72,d0
+    TRAP #15
+    RTS
+
+FIND_LOAD:
+    LEA FIND_WAV, A1
+    MOVE FIND_INDEX, D1
+    MOVE #71, D0
+    TRAP #15
+    RTS
+
+FIND_PLAY:
+    MOVE FIND_INDEX,D1
+    MOVE #72,D0
+    TRAP #15
+    RTS
+
+DEATH_LOAD:
+    LEA DEATH_WAV,A1
+    MOVE DEATH_INDEX,D1
+    MOVE #71, D0
+    TRAP #15
+    RTS
+
+DEATH_PLAY:
+    MOVE DEATH_INDEX,D1
+    MOVE #72, D0
+    TRAP #15
+    RTS
+    
 
 *-----------------------------------------------------------
 * Subroutine    : Draw Player
@@ -671,9 +619,10 @@ COLLISION_CHECK_DONE:               ; No Collision Update points
 
 COLLISION:
     BSR     PLAY_OPPS               ; Play Opps Wav
-    SUB.L  #20, PLAYER_HEALTH       ; Take 10 from score
-    IF.L (PLAYER_HEALTH) <EQ> #0 THEN
-        JMP EXIT
+    SUB.L  #20, PLAYER_SANITY       ; Take 10 from score
+    IF.L (PLAYER_SANITY) <EQ> #0 THEN
+        BSR DEATH_PLAY
+        JMP RESTART
     ENDI
     RTS                             ; Return to subroutine
     
@@ -683,6 +632,14 @@ COLLISION:
 * Description   : Resets the game
 *-----------------------------------------------------------
 RESTART:
+    CLR D0
+    CLR D1
+    MOVE.B	#TC_CURSR_P,D0          ; Set Cursor Position
+	MOVE.W	#$FF00,     D1          ; Clear contents
+	TRAP    #15                     ; Trap (Perform action)
+    move.l   #450,D1     ; delay in 1/100th of seconds
+    moveq    #23,D0
+    trap     #15
     
 
 *-----------------------------------------------------------
@@ -717,13 +674,8 @@ fear dc.b 'We fear not the darkness itself, but what lies within.',0
 eldritch dc.b 'Eldritch horrors beyond human comprehension.',0
 how dc.b 'How long do you reckon you can outrun them?',0
 let dc.b 'Let us find out......',0
-menu_WAV dc.b 'sounds/menu.wav', 0
-within_WAV dc.b 'sounds/within.wav', 0
-eldritch_WAV dc.b 'sounds/eldritch.wav',0
-reckon_WAV dc.b 'sounds/reckon.wav',0
-find_WAV dc.b 'sounds/find.wav',0
 
-SANITY_MSG       DC.B    'Sanity : ', 0       ; Score Message
+SANITY_MSG       DC.B    'Sanity: ', 0       ; Score Message
 KEYCODE_MSG     DC.B    'KeyCode : ', 0     ; Keycode Message
 JUMP_MSG        DC.B    'Jump....', 0       ; Jump Message
 
@@ -736,6 +688,7 @@ Y_MSG           DC.B    'Y:', 0             ; Y Position Message
 V_MSG           DC.B    'V:', 0             ; Velocity Position Message
 G_MSG           DC.B    'G:', 0             ; Gravity Position Message
 GND_MSG         DC.B    'GND:', 0           ; On Ground Position Message
+TIME_MSG        DC.B    'Time:', 0          ; Time Message
 
 EXIT_MSG        DC.B    'Exiting....', 0    ; Exit Message
 
@@ -765,7 +718,7 @@ CURRENT_KEY     DS.L    01  ; Reserve Space for Current Key Pressed
 *-----------------------------------------------------------
 PLAYER_X        DS.L    01  ; Reserve Space for Player X Position
 PLAYER_Y        DS.L    01  ; Reserve Space for Player Y Position
-PLAYER_HEALTH    DS.L    01  ; Reserve Space for Player Health
+PLAYER_SANITY    DS.L    01  ; Reserve Space for Player Health
 
 PLYR_VELOCITY   DS.L    01  ; Reserve Space for Player Velocity
 PLYR_GRAVITY    DS.L    01  ; Reserve Space for Player Gravity
@@ -774,9 +727,16 @@ PLYR_ON_GND     DS.L    01  ; Reserve Space for Player on Ground
 ENEMY_X         DS.L    01  ; Reserve Space for Enemy X Position
 ENEMY_Y         DS.L    01  ; Reserve Space for Enemy Y Position
 
-JUMP_WAV        DC.B    'jump.wav',0        ; Jump Sound
-RUN_WAV         DC.B    'run.wav',0         ; Run Sound
-OPPS_WAV        DC.B    'opps.wav',0        ; Collision Opps
+JUMP_WAV        DC.B    'sounds/jump.wav',0        ; Jump Sound
+RUN_WAV         DC.B    'sounds/run.wav',0         ; Run Sound
+OPPS_WAV        DC.B    'sounds/opps.wav',0        ; Collision Opps
+menu_WAV        dc.b    'sounds/menu.wav', 0
+within_WAV      dc.b    'sounds/within.wav', 0
+eldritch_WAV    dc.b    'sounds/eldritch.wav',0
+reckon_WAV      dc.b    'sounds/reckon.wav',0
+find_WAV        dc.b    'sounds/find.wav',0
+DEATH_WAV       DC.b    'sounds/death.wav',0
+
 
 
 
@@ -786,6 +746,11 @@ OPPS_WAV        DC.B    'opps.wav',0        ; Collision Opps
 
 
     END    START        ; last line of source
+
+
+
+
+
 
 
 
