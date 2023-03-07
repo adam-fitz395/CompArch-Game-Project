@@ -15,16 +15,10 @@ TC_DBL_BUF  EQU         92          ; Double Buffer Screen Trap Code
 TC_CURSR_P  EQU         11          ; Trap code cursor position
 TC_EXIT     EQU         09          ; Exit Trapcode
 
-* Player Health
-HEALTH EQU $4000
-
 * Key Inputs
-LEFT_ARROW  EQU         $25
-UP_ARROW    EQU         $26
-RIGHT_ARROW EQU         $27
-DOWN_ARROW  EQU         $28
-SPACEBAR    EQU         $20         ; Spacebar ASCII Keycode
+UP_ARROW    EQU         $26         ;Up arrow ASCII keycode
 ESCAPE      EQU         $1B         ; Escape ASCII Keycode
+ENTER       EQU         $0D         ; Enter ASCII Keycode
 
 * Player Setup
 PLYR_W_INIT EQU         08          ; Players initial Width
@@ -37,111 +31,25 @@ PLYR_DFLT_G EQU         01          ; Player Default Gravity
 GND_TRUE    EQU         01          ; Player on Ground True
 GND_FALSE   EQU         00          ; Player on Ground False
 
-RUN_INDEX   EQU         00          ; Player Run Sound Index  
 JMP_INDEX   EQU         01          ; Player Jump Sound Index  
-OPPS_INDEX  EQU         02          ; Player Opps Sound Index
-WITHIN_INDEX EQU        03
-ELDRITCH_INDEX EQU      04
-RECKON_INDEX EQU        06
-FIND_INDEX  EQU         08
-DEATH_INDEX EQU         10
+OOPS_INDEX  EQU         02          ; Player Oops Sound Index
+DEATH_INDEX EQU         10          ; Player death sound index
 
 * Enemy Setup
 ENMY_W_INIT EQU         08          ; Enemy initial Width
 ENMY_H_INIT EQU         08          ; Enemy initial Height
 
-POINTS      EQU         01          ; Points added
-
+*Get time at start of program
 GET_START_TIME:
     MOVE.B #8, D0
     TRAP #15
     MOVE.L D1, START_TIME
     CLR D1
-
-;Game boot dialogue start
-
-* GAME_BOOT:
-*         BSR     WITHIN_LOAD
-*         BSR     PLAY_WITHIN
-        
-*         MOVE.L #WHITE, D1 *Set text colour
-*         MOVE.L #$06090000,D2 *Set font, size, etc
-*         MOVE #21, D0
-*         TRAP #15
-        
-*         LEA fear,A1
-*         MOVE #60, D1
-*         MOVE #100, D2
-*         MOVE #95, D0
-*         TRAP #15
-        
-        
-*         move.l   #450,D1     ; delay in 1/100th of seconds
-*         moveq    #23,D0
-*         trap     #15
-        
-*         BSR ELDRITCH_LOAD
-*         BSR PLAY_ELDRITCH
-
-*         LEA eldritch,A1
-*         MOVE.W #60, D1
-*         MOVE.W #120, D2
-*         MOVE.B #95, D0
-*         TRAP #15
-        
-*         move.l   #400,D1
-*         moveq    #23,D0
-*         trap     #15
-        
-*         BSR RECKON_LOAD
-*         BSR PLAY_RECKON      
-        
-*         LEA how,A1
-*         MOVE.W #60, D1
-*         MOVE.W #140, D2
-*         MOVE.B #95, D0
-*         TRAP #15
-        
-*         MOVE.L   #400,D1
-*         MOVE    #23,D0
-*         TRAP     #15
-        
-*         BSR FIND_LOAD
-*         BSR FIND_PLAY
-        
-*         MOVE.L #RED, D1
-*         MOVE.L #$06090000,D2
-*         MOVE.B #21, D0
-*         TRAP #15
-        
-*         LEA let,A1
-*         MOVE.W #60, D1
-*         MOVE.W #250, D2
-*         MOVE.B #95, D0
-*         TRAP #15
-        
-*         move.l   #250,D1
-*         moveq    #23,D0
-*         trap     #15
-
-*         MOVE.L #WHITE, D1 *Set text colour
-*         MOVE.L #$06090000,D2 *Set font, size, etc
-*         MOVE #21, D0
-*         TRAP #15
-        
-*         MOVE.W #$FF00, D1
-*         MOVE.B #11, D0
-*         TRAP #15
-        
-*         CLR D0
-*         CLR D1
-*         CLR D2
         
 INITIALISE:
     ; Initialise Sounds
-    BSR     RUN_LOAD                ; Load Run Sound into Memory
     BSR     JUMP_LOAD               ; Load Jump Sound into Memory
-    BSR     OPPS_LOAD               ; Load Opps (Collision) Sound into Memory
+    BSR     OOPS_LOAD               ; Load Opps (Collision) Sound into Memory
     BSR     DEATH_LOAD
 
     ; Screen Size
@@ -208,7 +116,6 @@ INITIALISE:
 * (Input, Update, Draw). The Enemies Run at Player Jump to Avoid
 *-----------------------------------------------------------
 GAME:
-    BSR     PLAY_RUN                ; Play Run Wav
 GAMELOOP:
     ; Main Gameloop
     MOVEQ        #8,d0                * get time in 1/100 ths seconds
@@ -220,7 +127,7 @@ GAMELOOP:
     MOVE.l    D1,-(sp)            * push time on the stack
     BSR TIME
     BSR     INPUT                   ; Check Keyboard Input
-    BSR     UPDATE                  ; Update positions and points
+    BSR     UPDATE                  ; Update positions and health
     BSR     IS_PLAYER_ON_GND        ; Check if player is on ground
     BSR     CHECK_COLLISIONS        ; Check for Collisions
     BSR     DRAW                    ; Draw the Scene
@@ -263,7 +170,8 @@ PROCESS_INPUT:
     BEQ     EXIT                    ; Exit if Escape
     CMP.L   #UP_ARROW,  CURRENT_KEY ; Is Current Key Spacebar
     BEQ     JUMP                    ; Jump
-    BRA     IDLE                    ; Or Idle
+    CMP.L   #ENTER, CURRENT_KEY     ; Is current key ENTER
+    BEQ     START                   ; Return to START
     RTS                             ; Return to subroutine
 
 *-----------------------------------------------------------
@@ -290,6 +198,13 @@ UPDATE:
     BLE     RESET_ENEMY_POSITION    ; Reset Enemy if off Screen
     BRA     MOVE_ENEMY              ; Move the Enemy
     
+    CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
+    CLR.L   D1                      ; Clear the contents of D0
+    MOVE.L  ENEMY_X,    D1          ; Move the Enemy X Position to D0
+    CMP.L   #00,        D1
+    BLE     RESET_ENEMY_POSITION    ; Reset Enemy if off Screen
+    BRA     MOVE_ENEMY              ; Move the Enemy
+    
     RTS                             ; Return to subroutine
 
 *-----------------------------------------------------------
@@ -299,6 +214,7 @@ UPDATE:
 MOVE_ENEMY:
     SUB.L   #5,        ENEMY_X     ; Move enemy by X Value
     RTS
+    
 
 *-----------------------------------------------------------
 * Subroutine    : Reset Enemy
@@ -336,7 +252,7 @@ DRAW:
 DRAW_PLYR_DATA:
     CLR.L   D1                      ; Clear contents of D1 (XOR is faster)
 
-    ; Player Score Message
+    ; Player heatlh Message
     MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
     MOVE.W  #$0201,     D1          ; Col 02, Row 01
     TRAP    #15                     ; Trap (Perform action)
@@ -344,7 +260,7 @@ DRAW_PLYR_DATA:
     MOVE    #14,        D0          ; No Line feed
     TRAP    #15                     ; Trap (Perform action)
 
-    ; Player Score Value
+    ; Player heatlh Value
     MOVE.B  #03,        D0          ; Display number at D1.L
     MOVE.L  PLAYER_HEALTH,D1         ; Move Score to D1.L
     TRAP    #15                     ; Trap (Perform action)
@@ -451,31 +367,10 @@ JUMP_DONE:
     RTS                             ; Return to subroutine
 
 *-----------------------------------------------------------
-* Subroutine    : Idle
-* Description   : Perform a Idle
-*----------------------------------------------------------- 
-IDLE:
-    BSR     PLAY_RUN                ; Play Run Wav
-    RTS                             ; Return to subroutine
-
-*-----------------------------------------------------------
 * Subroutines   : Sound Load and Play
 * Description   : Initialise game sounds into memory 
 * Current Sounds are RUN, JUMP and Opps for Collision
 *-----------------------------------------------------------
-RUN_LOAD:
-    LEA     RUN_WAV,    A1          ; Load Wav File into A1
-    MOVE    #RUN_INDEX, D1          ; Assign it INDEX
-    MOVE    #71,        D0          ; Load into memory
-    TRAP    #15                     ; Trap (Perform action)
-    RTS                             ; Return to subroutine
-
-PLAY_RUN:
-    MOVE    #RUN_INDEX, D1          ; Load Sound INDEX
-    MOVE    #72,        D0          ; Play Sound
-    TRAP    #15                     ; Trap (Perform action)
-    RTS                             ; Return to subroutine
-
 JUMP_LOAD:
     LEA     JUMP_WAV,   A1          ; Load Wav File into A1
     MOVE    #JMP_INDEX, D1          ; Assign it INDEX
@@ -489,71 +384,19 @@ PLAY_JUMP:
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
 
-OPPS_LOAD:
-    LEA     OPPS_WAV,   A1          ; Load Wav File into A1
-    MOVE    #OPPS_INDEX,D1          ; Assign it INDEX
+OOPS_LOAD:
+    LEA     OOPS_WAV,   A1          ; Load Wav File into A1
+    MOVE    #OOPS_INDEX,D1          ; Assign it INDEX
     MOVE    #71,        D0          ; Load into memory
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
 
-PLAY_OPPS:
-    MOVE    #OPPS_INDEX,D1          ; Load Sound INDEX
+PLAY_OOPS:
+    MOVE    #OOPS_INDEX,D1          ; Load Sound INDEX
     MOVE    #72,        D0          ; Play Sound
     TRAP    #15                     ; Trap (Perform action)
     RTS                             ; Return to subroutine
     
-WITHIN_LOAD:
-    LEA     WITHIN_WAV, A1
-    MOVE    #WITHIN_INDEX, D1
-    MOVE    #71, D0
-    TRAP    #15
-    RTS
-    
-PLAY_WITHIN:
-    MOVE #WITHIN_INDEX, D1
-    MOVE #72, D0
-    TRAP #15
-    RTS
-    
-ELDRITCH_LOAD:
-    LEA ELDRITCH_WAV, A1
-    MOVE ELDRITCH_INDEX, D1
-    MOVE #71, D0
-    TRAP #15
-    RTS
-
-PLAY_ELDRITCH:
-    MOVE ELDRITCH_INDEX,D1
-    MOVE #72,D0
-    TRAP #15
-    RTS
-
-RECKON_LOAD:
-    LEA RECKON_WAV, A1
-    MOVE RECKON_INDEX,D1
-    MOVE #71,D0
-    TRAP #15
-    RTS
-
-PLAY_RECKON:
-    MOVE RECKON_INDEX,D1
-    MOVE #72,d0
-    TRAP #15
-    RTS
-
-FIND_LOAD:
-    LEA FIND_WAV, A1
-    MOVE FIND_INDEX, D1
-    MOVE #71, D0
-    TRAP #15
-    RTS
-
-FIND_PLAY:
-    MOVE FIND_INDEX,D1
-    MOVE #72,D0
-    TRAP #15
-    RTS
-
 DEATH_LOAD:
     LEA DEATH_WAV,A1
     MOVE DEATH_INDEX,D1
@@ -654,11 +497,11 @@ PLAYER_Y_PLUS_H_LTE_TO_ENEMY_Y:     ; Less than or Equal ?
     CMP.L   D1,         D2          ; Do they OverLap ?
     BGE     COLLISION               ; Collision !
     BRA     COLLISION_CHECK_DONE    ; If not no collision
-COLLISION_CHECK_DONE:               ; No Collision Update points
-    RTS                             ; Return to subroutine
-
+COLLISION_CHECK_DONE:               ; No Collision Update heatlh
+    RTS
+    
 COLLISION:
-    BSR     PLAY_OPPS               ; Play Opps Wav
+    BSR     PLAY_OOPS               ; Play Opps Wav
     SUB.L  #20, PLAYER_HEALTH       ; Take 10 from score
     IF.L (PLAYER_HEALTH) <EQ> #0 THEN
     BSR DEATH_PLAY
@@ -678,7 +521,7 @@ COLLISION:
 	MOVE.W	#$FF00,     D1          ; Clear contents
 	TRAP    #15
 	
-    JMP    EXIT
+    JMP    RESTART
         
     ENDI
     RTS                             ; Return to subroutine
@@ -689,14 +532,23 @@ COLLISION:
 * Description   : Resets the game
 *-----------------------------------------------------------
 RESTART:
-    CLR D0
-    CLR D1
-    MOVE.B	#TC_CURSR_P,D0          ; Set Cursor Position
-	MOVE.W	#$FF00,     D1          ; Clear contents
-	TRAP    #15                     ; Trap (Perform action)
-    move.l   #450,D1     ; delay in 1/100th of seconds
-    moveq    #23,D0
-    trap     #15
+    MOVE.B #TC_CURSR_P, D0
+    MOVE.W #$0203, D1
+    TRAP #15
+    
+    LEA RESTART_MSG, A1
+    MOVE #14, D0
+    TRAP #15
+    
+    BSR DRAW
+    
+    MOVE.B #19,D0
+    MOVE.L #ENTER, D1
+    TRAP #15
+    CMP.L  #$FF, D1
+    BEQ START
+    BRA RESTART
+    
     
 
 *-----------------------------------------------------------
@@ -704,13 +556,6 @@ RESTART:
 * Description   : Exit message and End Game
 *-----------------------------------------------------------
 EXIT:
-    ; Show if Exiting is Running
-    MOVE.B  #TC_CURSR_P,D0          ; Set Cursor Position
-    MOVE.W  #$4004,     D1          ; Col 40, Row 1
-    TRAP    #15                     ; Trap (Perform action)
-    LEA     EXIT_MSG,   A1          ; Exit
-    MOVE    #13,        D0          ; No Line feed
-    TRAP    #15                     ; Trap (Perform action)
     MOVE.B  #TC_EXIT,   D0          ; Exit Code
     TRAP    #15                     ; Trap (Perform action)
     SIMHALT
@@ -721,28 +566,12 @@ EXIT:
 * Section       : Messages
 * Description   : Messages to be displayed to the screen
 *-----------------------------------------------------------
-fear dc.b 'We fear not the darkness itself, but what lies within.',0
-eldritch dc.b 'Eldritch horrors beyond human comprehension.',0
-how dc.b 'How long do you reckon you can outrun them?',0
-let dc.b 'Let us find out......',0
 
 HEALTH_MSG      DC.B    'HEALTH: ', 0       ; Score Message
-KEYCODE_MSG     DC.B    'KeyCode : ', 0     ; Keycode Message
-JUMP_MSG        DC.B    'Jump....', 0       ; Jump Message
-
-IDLE_MSG        DC.B    'Idle....', 0       ; Idle Message
-UPDATE_MSG      DC.B    'Update....', 0     ; Update Message
-DRAW_MSG        DC.B    'Draw....', 0       ; Draw Message
-
-X_MSG           DC.B    'X:', 0             ; X Position Message
-Y_MSG           DC.B    'Y:', 0             ; Y Position Message
-V_MSG           DC.B    'V:', 0             ; Velocity Position Message
-G_MSG           DC.B    'G:', 0             ; Gravity Position Message
-GND_MSG         DC.B    'GND:', 0           ; On Ground Position Message
 TIME_MSG        DC.B    'TIME: ', 0          ; Time Message
 TIME_BREAK      DC.B    ':',0
-
 EXIT_MSG        DC.B    'Exiting....', 0    ; Exit Message
+RESTART_MSG     DC.B    'Press ENTER to restart...',0   ;Restart Message
 
 *-----------------------------------------------------------
 * Section       : Graphic Colors
@@ -770,7 +599,7 @@ CURRENT_KEY     DS.L    01  ; Reserve Space for Current Key Pressed
 *-----------------------------------------------------------
 PLAYER_X        DS.L    01  ; Reserve Space for Player X Position
 PLAYER_Y        DS.L    01  ; Reserve Space for Player Y Position
-PLAYER_HEALTH    DS.L    01  ; Reserve Space for Player Health
+PLAYER_HEALTH   DS.L    01  ; Reserve Space for Player Health
 
 PLYR_VELOCITY   DS.L    01  ; Reserve Space for Player Velocity
 PLYR_GRAVITY    DS.L    01  ; Reserve Space for Player Gravity
@@ -779,10 +608,10 @@ PLYR_ON_GND     DS.L    01  ; Reserve Space for Player on Ground
 ENEMY_X         DS.L    01  ; Reserve Space for Enemy X Position
 ENEMY_Y         DS.L    01  ; Reserve Space for Enemy Y Position
 
-START_TIME      DS.L    01
-TIME_ELAPSED    DS.L    01
-TIME_IN_SEC     DS.L    01
-TIME_IN_MIN     DS.L    01
+START_TIME      DS.L    01  ; Time game is started at
+TIME_ELAPSED    DS.L    01  ; Time passed since game start
+TIME_IN_SEC     DS.L    01  ; Time stored in seconds
+TIME_IN_MIN     DS.L    01  ; Time stored in minutes
 
 *-----------------------------------------------------------
 * Section       : Sounds
@@ -790,17 +619,16 @@ TIME_IN_MIN     DS.L    01
 *-----------------------------------------------------------
 
 JUMP_WAV        DC.B    'sounds/jump.wav',0        ; Jump Sound
-RUN_WAV         DC.B    'sounds/run.wav',0         ; Run Sound
-OPPS_WAV        DC.B    'sounds/opps.wav',0        ; Collision Opps
-menu_WAV        dc.b    'sounds/menu.wav', 0
-within_WAV      dc.b    'sounds/within.wav', 0
-eldritch_WAV    dc.b    'sounds/eldritch.wav',0
-reckon_WAV      dc.b    'sounds/reckon.wav',0
-find_WAV        dc.b    'sounds/find.wav',0
-DEATH_WAV       DC.b    'sounds/death.wav',0
+OOPS_WAV        DC.B    'sounds/oops.wav',0        ; Collision Opps
+DEATH_WAV       DC.b    'sounds/death.wav',0       ; Death sound
 
 
     END    START        ; last line of source
+
+
+
+
+
 
 
 
